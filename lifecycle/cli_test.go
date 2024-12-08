@@ -1,10 +1,11 @@
 package lifecycle
 
 import (
+	"github.com/jfrog/jfrog-cli-core/v2/utils/coreutils"
 	"github.com/jfrog/jfrog-cli/utils/cliutils"
 	"github.com/jfrog/jfrog-cli/utils/tests"
+	clientTestUtils "github.com/jfrog/jfrog-client-go/utils/tests"
 	"github.com/stretchr/testify/assert"
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -81,8 +82,11 @@ func TestGetReleaseBundleCreationSpec(t *testing.T) {
 	})
 
 	t.Run("Build Name and Number Set via Env Variables", func(t *testing.T) {
-		t.Setenv("JFROG_CLI_BUILD_NAME", "Common-builds")
-		t.Setenv("JFROG_CLI_BUILD_NUMBER", "2.0.0")
+
+		setEnvBuildNameCallBack := clientTestUtils.SetEnvWithCallbackAndAssert(t, coreutils.BuildName, "Common-builds")
+		defer setEnvBuildNameCallBack()
+		setEnvBuildNumberCallBack := clientTestUtils.SetEnvWithCallbackAndAssert(t, coreutils.BuildNumber, "2.0.0")
+		defer setEnvBuildNumberCallBack()
 
 		ctx, _ := tests.CreateContext(t, []string{}, []string{})
 
@@ -91,8 +95,6 @@ func TestGetReleaseBundleCreationSpec(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, spec)
 		assert.Equal(t, "Common-builds/2.0.0", spec.Files[0].Build)
-		os.Unsetenv("JFROG_CLI_BUILD_NAME")
-		os.Unsetenv("JFROG_CLI_BUILD_NUMBER")
 	})
 
 	t.Run("Missing Build Name and Number", func(t *testing.T) {
@@ -117,13 +119,13 @@ func TestGetReleaseBundleCreationSpec(t *testing.T) {
 
 	t.Run("One Env Variable One Flag", func(t *testing.T) {
 		ctx, _ := tests.CreateContext(t, []string{"build-name=Common-builds"}, []string{})
-		t.Setenv("JFROG_CLI_BUILD_NUMBER", "2.0.0")
+		setEnvBuildNumberCallBack := clientTestUtils.SetEnvWithCallbackAndAssert(t, coreutils.BuildNumber, "2.0.0")
+		defer setEnvBuildNumberCallBack()
 
 		spec, err := getReleaseBundleCreationSpec(ctx)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, spec)
 		assert.Equal(t, "Common-builds/2.0.0", spec.Files[0].Build)
-		os.Unsetenv("JFROG_CLI_BUILD_NUMBER")
 	})
 }
